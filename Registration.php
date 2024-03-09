@@ -1,3 +1,10 @@
+<?php
+    session_start();
+    if(isset($_SESSION["user"])){
+        header("Location: index.php");
+    }
+?> 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -19,78 +26,64 @@
 </section>
 
   <div class="container">
-    <?php
-    session_start();
-    if(isset($_SESSION["user"])){
-      header("Location: index.php");
-      exit(); // Ensure script execution stops here if user is already logged in
-    }
-
+<?php
     if(isset($_POST["submit"])){
-      $LastName = $_POST["Last_Name"];
-      $FirstName = $_POST["First_Name"];
-      $email = $_POST["Email"];
-      $PhoneNumber = $_POST["Phone_Number"];
-      $password = $_POST["password"];
-      $RepeatPassword = $_POST["repeat_password"];
- 
-      $passwordHash = password_hash($password, PASSWORD_DEFAULT);
-      $errors = array();
-      if (empty($LastName) OR empty($FirstName) OR empty($email) OR empty($PhoneNumber) OR empty($password) OR empty($RepeatPassword)) {
-        array_push($errors, "All fields are required");
-      }
-      if (!filter_var($email, FILTER_VALIDATE_EMAIL)){
-        array_push($errors, "Email is not valid");
-      }
-      if (!filter_var($PhoneNumber, FILTER_VALIDATE_PHONE_NUMBER)){
-        array_push($errors, "Phone Number is not valid");
-      }
-      if(strlen($password)<8) {
-        array_push($errors, "Password must be at least 8 characters long");
-      }
-      if($password!= $RepeatPassword){
-        array_push($errors, "Password does not match");
-      }
+        $LastName = $_POST["LastName"];
+        $FirstName = $_POST["FirstName"];
+        $email = $_POST["Email"];
+        $password = $_POST["password"];
+        $RepeatPassword = $_POST["repeat_password"];
 
-      require_once "database.php";
-      $sql = "SELECT * FROM user WHERE email = ?";
-      $stmt = mysqli_prepare($conn, $sql);
-      mysqli_stmt_bind_param($stmt, "s", $email);
-      mysqli_stmt_execute($stmt);
-      $result = mysqli_stmt_get_result($stmt);
-      $rowCount = mysqli_num_rows($result);
-      if ($rowCount>0) {
-        array_push($errors, "Email Already Exist!");
-      }
- 
-      if (count($errors)>0){
-        foreach($errors as $error) {
-          echo"<div class='alert alert-danger'>$error</div>";
+        $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+        $errors = array();
+        if (empty($LastName) || empty($FirstName) || empty($email) || empty($password) || empty($RepeatPassword)) {
+            array_push($errors, "All fields are required");
         }
-      } else {
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)){
+            array_push($errors, "Email is not valid");
+        }
+        if(strlen($password) < 8) {
+            array_push($errors, "Password must be at least 8 characters long");
+        }
+        if($password != $RepeatPassword){
+            array_push($errors, "Password does not match");
+        }
+
         require_once "database.php";
-        $sql = "INSERT INTO user(Last_Name, First_Name, email, Phone_Number, password) VALUES (?, ?, ?, ?)";
+        $sql = "SELECT * FROM user WHERE email = ?";
         $stmt = mysqli_stmt_init($conn);
-        $preparestmt = mysqli_stmt_prepare($stmt, $sql);
-        if ($preparestmt) {
-          mysqli_stmt_bind_param($stmt, "ssss", $LastName, $FirstName, $email, $passwordHash);
-          mysqli_stmt_execute($stmt);
-          echo "<div class='alert alert-success'> You are Registered Successfully! </div>";
-          // Store user's first name in session
-          $_SESSION["user"] = "yes";
-          $_SESSION["firstname"] = $FirstName;
-          // Redirect to index.php
-          header("Location: index.php");
-          exit(); // Ensure script execution stops here
-        } else {
-          die("Something went wrong");
+        if (mysqli_stmt_prepare($stmt, $sql)) {
+            mysqli_stmt_bind_param($stmt, "s", $email);
+            mysqli_stmt_execute($stmt);
+            $result = mysqli_stmt_get_result($stmt);
+            $rowCount = mysqli_num_rows($result);
+            if ($rowCount > 0) {
+                array_push($errors, "Email Already Exists!");
+            }
         }
-      }
+
+        if (count($errors) > 0) {
+            foreach($errors as $error) {
+                echo "<div class='alert alert-danger'>$error</div>";
+            }
+        } else {
+            require_once "database.php";
+            $sql = "INSERT INTO user(LastName, FirstName, email, password) VALUES (?, ?, ?, ?, )";
+            $stmt = mysqli_stmt_init($conn);
+            if (mysqli_stmt_prepare($stmt, $sql)) {
+                mysqli_stmt_bind_param($stmt, "sssss", $LastName, $FirstName, $email, $passwordHash);
+                mysqli_stmt_execute($stmt);
+                echo "<div class='alert alert-success'> You are Registered Successfully! </div>";
+            } else {
+                die("Something went wrong");
+            }
+        }
     }
-    ?>
+?>
+
 
 <h2>Create New Account</h2>
-<form action="Registration2.php" method="post">
+<form action="index.php" method="post">
     <div class="form-group">
         <label for="LastName"></label>
         <p style="color: gold">Last Name:</p>
@@ -107,7 +100,7 @@
         <input type="email" class="form-control" name="Email" required>
     </div>
     <div class="form-group">
-    <label for="PhoneNumber"></label>
+    <label for="Number"></label>
     <p style="color: gold">Phone Number:</p>
     <div class="input-group">
         <select class="form-select" name="CountryCode" required>
@@ -350,9 +343,513 @@
             <option value="260">Zambia (ZM / ZMB) +260</option>
             <option value="263">Zimbabwe (ZW / ZWE) +263</option>
             </select>
-            <input type="tel" class="form-control" name="PhoneNumber" id="phoneNumberInput" maxlength="10" pattern="\d{1,9}">
+            <input type="tel" class="form-control" name="number" id="Number" maxlength="10" pattern="\d{1,10}">
     </div>
 </div>
+<div class="form-group">
+        <label for="Lot/Blk"></label>
+        <p style="color: gold">Lot/Blk:</p>
+        <input type="text" class="form-control" name="Lot/Blk" required>
+    </div>
+    <div class="form-group">
+        <label for="street"></label>
+        <p style="color: gold">Street:</p>
+        <input type="text" class="form-control" name="street" required>
+    </div>
+    <div class="form-group">
+        <label for="subdivision"></label>
+        <p style="color: gold">Subdivision:</p>
+        <input type="text" class="form-control" name="subdivision" required>
+    </div>
+    <div class="form-group">
+    <label for=barangay"></label>
+    <p style="color: gold">Barangay:</p>
+    <input type="text" class="form-control" name="barangay" required>
+</div>
+<div class="form-group">
+    <label for="city"></label>
+    <p style="color: gold">City:</p>        <div class="input-group">
+    <select class="form-select" name="city" required>
+    <option value="Angeles">Angeles</option>
+<option value="Bacolod">Bacolod</option>
+<option value="Baguio">Baguio</option>
+<option value="Butuan">Butuan</option>
+<option value="Cagayan de Oro">Cagayan de Oro</option>
+<option value="Caloocan">Caloocan</option>
+<option value="Cebu City">Cebu City</option>
+<option value="Davao City">Davao City</option>
+<option value="General Santos">General Santos</option>
+<option value="Iligan">Iligan</option>
+<option value="Iloilo City">Iloilo City</option>
+<option value="Lapu-Lapu">Lapu-Lapu</option>
+<option value="Las Piñas">Las Piñas</option>
+<option value="Lucena">Lucena</option>
+<option value="Makati">Makati</option>
+<option value="Malabon">Malabon</option>
+<option value="Mandaluyong">Mandaluyong</option>
+<option value="Mandaue">Mandaue</option>
+<option value="Manila">Manila</option>
+<option value="Marikina">Marikina</option>
+<option value="Muntinlupa">Muntinlupa</option>
+<option value="Navotas">Navotas</option>
+<option value="Olongapo">Olongapo</option>
+<option value="Parañaque">Parañaque</option>
+<option value="Pasay">Pasay</option>
+<option value="Pasig">Pasig</option>
+<option value="Puerto Princesa">Puerto Princesa</option>
+<option value="Quezon City">Quezon City</option>
+<option value="San Juan">San Juan</option>
+<option value="Tacloban">Tacloban</option>
+<option value="Taguig">Taguig</option>
+<option value="Valenzuela">Valenzuela</option>
+<option value="Zamboanga City">Zamboanga City</option>
+<option value="Cotabato City">Cotabato City</option>
+<option value="Dagupan (Pangasinan)">Dagupan (Pangasinan)</option>
+<option value="Naga (Camarines Sur)">Naga (Camarines Sur)</option>
+<option value="Ormoc (Leyte)">Ormoc (Leyte)</option>
+<option value="Santiago (Isabela)">Santiago (Isabela)</option>
+<option value="Alaminos (Pangasinan)">Alaminos (Pangasinan)</option>
+<option value="Antipolo (Rizal)">Antipolo (Rizal)</option>
+<option value="Bacoor (Cavite)">Bacoor (Cavite)</option>
+<option value="Bago (Negros Occidental)">Bago (Negros Occidental)</option>
+<option value="Bais (Negros Oriental)">Bais (Negros Oriental)</option>
+<option value="Balanga (Bataan)">Balanga (Bataan)</option>
+<option value="Batac (Ilocos Norte)">Batac (Ilocos Norte)</option>
+<option value="Batangas City (Batangas)">Batangas City (Batangas)</option>
+<option value="Bayawan (Negros Oriental)">Bayawan (Negros Oriental)</option>
+<option value="Baybay (Leyte)">Baybay (Leyte)</option>
+<option value="Bayugan (Agusan del Sur)">Bayugan (Agusan del Sur)</option>
+<option value="Bislig (Surigao del Sur)">Bislig (Surigao del Sur)</option>
+<option value="Biñan (Laguna)">Biñan (Laguna)</option>
+<option value="Bogo (Cebu)">Bogo (Cebu)</option>
+<option value="Borongan (Eastern Samar)">Borongan (Eastern Samar)</option>
+<option value="Cabadbaran (Agusan del Norte)">Cabadbaran (Agusan del Norte)</option>
+<option value="Cabanatuan (Nueva Ecija)">Cabanatuan (Nueva Ecija)</option>
+<option value="Cabuyao (Laguna)">Cabuyao (Laguna)</option>
+<option value="Cadiz (Negros Occidental)">Cadiz (Negros Occidental)</option>
+<option value="Calamba (Laguna)">Calamba (Laguna)</option>
+<option value="Calapan (Oriental Mindoro)">Calapan (Oriental Mindoro)</option>
+<option value="Calbayog (Samar)">Calbayog (Samar)</option>
+<option value="Candon (Ilocos Sur)">Candon (Ilocos Sur)</option>
+<option value="Canlaon (Negros Oriental)">Canlaon (Negros Oriental)</option>
+<option value="Carcar (Cebu)">Carcar (Cebu)</option>
+<option value="Catbalogan (Samar)">Catbalogan (Samar)</option>
+<option value="Cauayan (Isabela)">Cauayan (Isabela)</option>
+<option value="Cavite City (Cavite)">Cavite City (Cavite)</option>
+<option value="Danao (Cebu)">Danao (Cebu)</option>
+<option value="Dapitan (Zamboanga del Norte)">Dapitan (Zamboanga del Norte)</option>
+<option value="Dasmariñas (Cavite)">Dasmariñas (Cavite)</option>
+<option value="Digos (Davao del Sur)">Digos (Davao del Sur)</option>
+<option value="Dipolog (Zamboanga del Norte)">Dipolog (Zamboanga del Norte)</option>
+<option value="Dumaguete (Negros Oriental)">Dumaguete (Negros Oriental)</option>
+<option value="El Salvador (Misamis Oriental)">El Salvador (Misamis Oriental)</option>
+<option value="Escalante (Negros Occidental)">Escalante (Negros Occidental)</option>
+<option value="Gapan (Nueva Ecija)">Gapan (Nueva Ecija)</option>
+<option value="General Trias (Cavite)">General Trias (Cavite)</option>
+<option value="Gingoog (Misamis Oriental)">Gingoog (Misamis Oriental)</option>
+<option value="Guihulngan (Negros Oriental)">Guihulngan (Negros Oriental)</option>
+<option value="Himamaylan (Negros Occidental)">Himamaylan (Negros Occidental)</option>
+<option value="Ilagan (Isabela)">Ilagan (Isabela)</option>
+<option value="Imus (Cavite)">Imus (Cavite)</option>
+<option value="Iriga (Camarines Sur)">Iriga (Camarines Sur)</option>
+<option value="Isabela City (Basilan)">Isabela City (Basilan)</option>
+<option value="Kabankalan (Negros Occidental)">Kabankalan (Negros Occidental)</option>
+<option value="Kidapawan (Cotabato)">Kidapawan (Cotabato)</option>
+<option value="Koronadal (South Cotabato)">Koronadal (South Cotabato)</option>
+<option value="La Carlota (Negros Occidental)">La Carlota (Negros Occidental)</option>
+<option value="Lamitan (Basilan)">Lamitan (Basilan)</option>
+<option value="Laoag (Ilocos Norte)">Laoag (Ilocos Norte)</option>
+<option value="Legazpi (Albay)">Legazpi (Albay)</option>
+<option value="Ligao (Albay)">Ligao (Albay)</option>
+<option value="Lipa (Batangas)">Lipa (Batangas)</option>
+<option value="Maasin (Southern Leyte)">Maasin (Southern Leyte)</option>
+<option value="Mabalacat (Pampanga)">Mabalacat (Pampanga)</option>
+<option value="Malaybalay (Bukidnon)">Malaybalay (Bukidnon)</option>
+<option value="Malolos (Bulacan)">Malolos (Bulacan)</option>
+<option value="Marawi (Lanao del Sur)">Marawi (Lanao del Sur)</option>
+<option value="Masbate City (Masbate)">Masbate City (Masbate)</option>
+<option value="Mati (Davao Oriental)">Mati (Davao Oriental)</option>
+<option value="Meycauayan (Bulacan)">Meycauayan (Bulacan)</option>
+<option value="Muñoz (Nueva Ecija)">Muñoz (Nueva Ecija)</option>
+<option value="Naga (Cebu)">Naga (Cebu)</option>
+<option value="Oroquieta (Misamis Occidental)">Oroquieta (Misamis Occidental)</option>
+<option value="Ozamiz (Misamis Occidental)">Ozamiz (Misamis Occidental)</option>
+<option value="Pagadian (Zamboanga del Sur)">Pagadian (Zamboanga del Sur)</option>
+<option value="Palayan (Nueva Ecija)">Palayan (Nueva Ecija)</option>
+<option value="Panabo (Davao del Norte)">Panabo (Davao del Norte)</option>
+<option value="Passi (Iloilo)">Passi (Iloilo)</option>
+<option value="Roxas City (Capiz)">Roxas City (Capiz)</option>
+<option value="Sagay (Negros Occidental)">Sagay (Negros Occidental)</option>
+<option value="Samal (Davao del Norte)">Samal (Davao del Norte)</option>
+<option value="San Carlos (Pangasinan)">San Carlos (Pangasinan)</option>
+<option value="San Carlos (Negros Occidental)">San Carlos (Negros Occidental)</option>
+<option value="San Fernando (La Union)">San Fernando (La Union)</option>
+<option value="San Fernando (Pampanga)">San Fernando (Pampanga)</option>
+<option value="San Jose (Nueva Ecija)">San Jose (Nueva Ecija)</option>
+<option value="San Jose del Monte (Bulacan)">San Jose del Monte (Bulacan)</option>
+<option value="San Pablo (Laguna)">San Pablo (Laguna)</option>
+<option value="San Pedro (Laguna)">San Pedro (Laguna)</option>
+<option value="Santa Rosa (Laguna)">Santa Rosa (Laguna)</option>
+<option value="Santo Tomas (Batangas)">Santo Tomas (Batangas)</option>
+<option value="Silay (Negros Occidental)">Silay (Negros Occidental)</option>
+<option value="Sipalay (Negros Occidental)">Sipalay (Negros Occidental)</option>
+<option value="Sorsogon City (Sorsogon)">Sorsogon City (Sorsogon)</option>
+<option value="Surigao City (Surigao del Norte)">Surigao City (Surigao del Norte)</option>
+<option value="Tabaco (Albay)">Tabaco (Albay)</option>
+<option value="Tabuk (Kalinga)">Tabuk (Kalinga)</option>
+<option value="Tacurong (Sultan Kudarat)">Tacurong (Sultan Kudarat)</option>
+<option value="Tagaytay (Cavite)">Tagaytay (Cavite)</option>
+<option value="Tagbilaran (Bohol)">Tagbilaran (Bohol)</option>
+<option value="Tagum (Davao del Norte)">Tagum (Davao del Norte)</option>
+<option value="Talisay (Negros Occidental)">Talisay (Negros Occidental)</option>
+<option value="Talisay (Cebu)">Talisay (Cebu)</option>
+<option value="Tanauan (Batangas)">Tanauan (Batangas)</option>
+<option value="Tandag (Surigao del Sur)">Tandag (Surigao del Sur)</option>
+<option value="Tangub (Misamis Occidental)">Tangub (Misamis Occidental)</option>
+<option value="Tanjay (Negros Oriental)">Tanjay (Negros Oriental)</option>
+<option value="Tarlac City (Tarlac)">Tarlac City (Tarlac)</option>
+<option value="Tayabas (Quezon)">Tayabas (Quezon)</option>
+<option value="Toledo (Cebu)">Toledo (Cebu)</option>
+<option value="Trece Martires (Cavite)">Trece Martires (Cavite)</option>
+<option value="Tuguegarao (Cagayan)">Tuguegarao (Cagayan)</option>
+<option value="Urdaneta (Pangasinan)">Urdaneta (Pangasinan)</option>
+<option value="Valencia (Bukidnon)">Valencia (Bukidnon)</option>
+<option value="Victorias (Negros Occidental)">Victorias (Negros Occidental)</option>
+<option value="Vigan (Ilocos Sur)">Vigan (Ilocos Sur)</option>
+</select>
+    </div>
+    <div class="form-group">
+    <label for="province"></label>
+    <p style="color: gold">Province:</p>        <div class="input-group">
+    <select class="form-select" name="province" required>
+    <option value="Abra">Abra</option>
+<option value="Agusan del Norte">Agusan del Norte</option>
+<option value="Agusan del Sur">Agusan del Sur</option>
+<option value="Aklan">Aklan</option>
+<option value="Albay">Albay</option>
+<option value="Antique">Antique</option>
+<option value="Apayao">Apayao</option>
+<option value="Aurora">Aurora</option>
+<option value="Basilan">Basilan</option>
+<option value="Bataan">Bataan</option>
+<option value="Batanes">Batanes</option>
+<option value="Batangas">Batangas</option>
+<option value="Benguet">Benguet</option>
+<option value="Biliran">Biliran</option>
+<option value="Bohol">Bohol</option>
+<option value="Bukidnon">Bukidnon</option>
+<option value="Bulacan">Bulacan</option>
+<option value="Cagayan">Cagayan</option>
+<option value="Camarines Norte">Camarines Norte</option>
+<option value="Camarines Sur">Camarines Sur</option>
+<option value="Camiguin">Camiguin</option>
+<option value="Capiz">Capiz</option>
+<option value="Catanduanes">Catanduanes</option>
+<option value="Cavite">Cavite</option>
+<option value="Cebu">Cebu</option>
+<option value="Cotabato">Cotabato</option>
+<option value="Davao de Oro (Compostela Valley)">Davao de Oro (Compostela Valley)</option>
+<option value="Davao del Norte">Davao del Norte</option>
+<option value="Davao del Sur">Davao del Sur</option>
+<option value="Davao Occidental">Davao Occidental</option>
+<option value="Davao Oriental">Davao Oriental</option>
+<option value="Dinagat Islands">Dinagat Islands</option>
+<option value="Eastern Samar">Eastern Samar</option>
+<option value="Guimaras">Guimaras</option>
+<option value="Ifugao">Ifugao</option>
+<option value="Ilocos Norte">Ilocos Norte</option>
+<option value="Ilocos Sur">Ilocos Sur</option>
+<option value="Iloilo">Iloilo</option>
+<option value="Isabela">Isabela</option>
+<option value="Kalinga">Kalinga</option>
+<option value="Laguna">Laguna</option>
+<option value="Lanao del Norte">Lanao del Norte</option>
+<option value="Lanao del Sur">Lanao del Sur</option>
+<option value="La Union">La Union</option>
+<option value="Leyte">Leyte</option>
+<option value="Maguindanao">Maguindanao</option>
+<option value="Marinduque">Marinduque</option>
+<option value="Masbate">Masbate</option>
+<option value="Misamis Occidental">Misamis Occidental</option>
+<option value="Misamis Oriental">Misamis Oriental</option>
+<option value="Mountain Province">Mountain Province</option>
+<option value="Negros Occidental">Negros Occidental</option>
+<option value="Negros Oriental">Negros Oriental</option>
+<option value="Northern Samar">Northern Samar</option>
+<option value="Nueva Ecija">Nueva Ecija</option>
+<option value="Nueva Vizcaya">Nueva Vizcaya</option>
+<option value="Occidental Mindoro">Occidental Mindoro</option>
+<option value="Oriental Mindoro">Oriental Mindoro</option>
+<option value="Palawan">Palawan</option>
+<option value="Pampanga">Pampanga</option>
+<option value="Pangasinan">Pangasinan</option>
+<option value="Quezon">Quezon</option>
+<option value="Quirino">Quirino</option>
+<option value="Rizal">Rizal</option>
+<option value="Romblon">Romblon</option>
+<option value="Samar">Samar</option>
+<option value="Sarangani">Sarangani</option>
+<option value="Siquijor">Siquijor</option>
+<option value="Sorsogon">Sorsogon</option>
+<option value="South Cotabato">South Cotabato</option>
+<option value="Southern Leyte">Southern Leyte</option>
+<option value="Sultan Kudarat">Sultan Kudarat</option>
+<option value="Sulu">Sulu</option>
+<option value="Surigao del Norte">Surigao del Norte</option>
+<option value="Surigao del Sur">Surigao del Sur</option>
+<option value="Tarlac">Tarlac</option>
+<option value="Tawi-Tawi">Tawi-Tawi</option>
+<option value="Zambales">Zambales</option>
+<option value="Zamboanga del Norte">Zamboanga del Norte</option>
+<option value="Zamboanga del Sur">Zamboanga del Sur</option>
+<option value="Zamboanga Sibugay">Zamboanga Sibugay</option>
+<option value="National Capital Region (NCR)">National Capital Region (NCR)</option>
+<option value="Highly urbanized cities outside NCR, and Cotabato City">Highly urbanized cities outside NCR, and Cotabato City</option>
+</select>
+    </div>
+    <div class="form-group">
+    <label for="country"></label>
+    <p style="color: gold">Country:</p>        <div class="input-group">
+    <select class="form-select" name="country" required>
+        <option value="Afghanistan">Afghanistan (AF / AFG)</option>
+        <option value="Albania">Albania (AL / ALB)</option>
+        <option value="Algeria">Algeria (DZ / DZA)</option>
+        <option value="American Samoa">American Samoa (AS / ASM)</option>
+        <option value="Andorra">Andorra (AD / AND)</option>
+        <option value="Angola">Angola (AO / AGO)</option>
+        <option value="Anguilla">Anguilla (AI / AIA)</option>
+        <option value="Antarctica">Antarctica (AQ / ATA)</option>
+        <option value="Australia">Australia (AU / AUS)</option>
+        <option value="Austria">Austria (AT / AUT)</option>
+        <option value="Azerbaijan">Azerbaijan (AZ / AZE)</option>
+        <option value="Bahamas">Bahamas (BS / BHS)</option>
+        <option value="Bahrain">Bahrain (BH / BHR)</option>
+        <option value="Bangladesh">Bangladesh (BD / BGD)</option>
+        <option value="Barbados">Barbados (BB / BRB)</option>
+        <option value="Belarus">Belarus (BY / BLR)</option>
+        <option value="Belgium">Belgium (BE / BEL)</option>
+        <option value="Belize">Belize (BZ / BLZ)</option>
+        <option value="Benin">Benin (BJ / BEN)</option>
+        <option value="Bermuda">Bermuda (BM / BMU)</option>
+        <option value="Bhutan">Bhutan (BT / BTN)</option>
+        <option value="Bolivia">Bolivia (BO / BOL)</option>
+        <option value="Bosnia and Herzegovina">Bosnia and Herzegovina (BA / BIH)</option>
+        <option value="Botswana">Botswana (BW / BWA)</option>
+        <option value="Brazil">Brazil (BR / BRA)</option>
+        <option value="British Virgin Islands">British Virgin Islands (VG / VGB)</option>
+        <option value="Brunei">Brunei (BN / BRN)</option>
+        <option value="Bulgaria">Bulgaria (BG / BGR)</option>
+        <option value="Burkina Faso">Burkina Faso (BF / BFA)</option>
+        <option value="Burma (Myanmar)">Burma (Myanmar) (MM / MMR)</option>
+        <option value="Burundi">Burundi (BI / BDI)</option>
+        <option value="Cambodia">Cambodia (KH / KHM)</option>
+        <option value="Cameroon">Cameroon (CM / CMR)</option>
+        <option value="Canada">Canada (CA / CAN)</option>
+        <option value="Cape Verde">Cape Verde (CV / CPV)</option>
+        <option value="Cayman Islands">Cayman Islands (KY / CYM)</option>
+        <option value="Central African Republic">Central African Republic (CF / CAF)</option>
+        <option value="Chad">Chad (TD / TCD)</option>
+        <option value="Chile">Chile (CL / CHL)</option>
+        <option value="China">China (CN / CHN)</option>
+        <option value="Christmas Island">Christmas Island (CX / CXR)</option>
+        <option value="Cocos (Keeling) Islands">Cocos (Keeling) Islands (CC / CCK)</option>
+        <option value="Colombia">Colombia (CO / COL)</option>
+        <option value="Comoros">Comoros (KM / COM)</option>
+        <option value="Congo">Congo (CG / COG)</option>
+        <option value="Cook Islands">Cook Islands (CK / COK)</option>
+        <option value="Costa Rica">Costa Rica (CR / CRC)</option>
+        <option value="Croatia">Croatia (HR / HRV)</option>
+        <option value="Cuba">Cuba (CU / CUB)</option>
+        <option value="Cyprus">Cyprus (CY / CYP)</option>
+        <option value="Czech Republic">Czech Republic (CZ / CZE)</option>
+        <option value="Democratic Republic of the Congo">Democratic Republic of the Congo (CD / COD)</option>
+        <option value="Denmark">Denmark (DK / DNK)</option>
+        <option value="Diego Garcia">Diego Garcia (DG/DGA)</option>
+        <option value="Djibouti">Djibouti (DJ / DJI)</option>
+        <option value="Dominica">Dominica (DM / DMA)</option>
+        <option value="Dominican Republic">Dominican Republic (DO / DOM)</option>
+        <option value="Ecuador">Ecuador (EC / ECU)</option>
+        <option value="Egypt">Egypt (EG / EGY)</option>
+        <option value="El Salvador">El Salvador (SV / SLV)</option>
+        <option value="Equatorial Guinea">Equatorial Guinea (GQ / GNQ)</option>
+        <option value="Eritrea">Eritrea (ER / ERI)</option>
+        <option value="Estonia">Estonia (EE / EST)</option>
+        <option value="Ethiopia">Ethiopia (ET / ETH)</option>
+        <option value="Falkland Islands">Falkland Islands (FK / FLK)</option>
+        <option value="Faroe Islands">Faroe Islands (FO / FRO)</option>
+        <option value="Fiji">Fiji (FJ / FJI)</option>
+        <option value="Finland">Finland (FI / FIN)</option>
+        <option value="France">France (FR / FRA)</option>
+        <option value="French Guiana">French Guiana (GF / GUF)</option>
+        <option value="French Polynesia">French Polynesia (PF / PYF)</option>
+        <option value="Gabon">Gabon (GA / GAB)</option>
+        <option value="Gambia">Gambia (GM / GMB)</option>
+        <option value="Georgia">Georgia (GE / GEO)</option>
+        <option value="Germany">Germany (DE / DEU)</option>
+        <option value="Ghana">Ghana (GH / GHA)</option>
+        <option value="Gibraltar">Gibraltar (GI / GIB)</option>
+        <option value="Greece">Greece (GR / GRC)</option>
+        <option value="Greenland">Greenland (GL / GRL)</option>
+        <option value="Grenada">Grenada (GD / GRD)</option>
+        <option value="Guadeloupe">Guadeloupe (GP / GLP)</option>
+        <option value="Guam">Guam (GU / GUM)</option>
+        <option value="Guatemala">Guatemala (GT / GTM)</option>
+        <option value="Guinea">Guinea (GN / GIN)</option>
+        <option value="Guinea-Bissau">Guinea-Bissau (GW / GNB)</option>
+        <option value="Guyana">Guyana (GY / GUY)</option>
+        <option value="Haiti">Haiti (HT / HTI)</option>
+        <option value="Holy See (Vatican City)">Holy See (Vatican City) (VA / VAT)</option>
+        <option value="Honduras">Honduras (HN / HND)</option>
+        <option value="Hong Kong">Hong Kong (HK / HKG)</option>
+        <option value="Hungary">Hungary (HU / HUN)</option>
+        <option value="Iceland">Iceland (IS / IS)</option>
+        <option value="India">India (IN / IND)</option>
+        <option value="Indonesia">Indonesia (ID / IDN)</option>
+        <option value="Iran">Iran (IR / IRN)</option>
+        <option value="Iraq">Iraq (IQ / IRQ)</option>
+        <option value="Ireland">Ireland (IE / IRL)</option>
+        <option value="Isle of Man">Isle of Man (IM / IMN)</option>
+        <option value="Israel">Israel (IL / ISR)</option>
+        <option value="Italy">Italy (IT / ITA)</option>
+        <option value="Ivory Coast (Côte d'Ivoire)">Ivory Coast (Côte d'Ivoire) (CI / CIV)</option>
+        <option value="Jamaica">Jamaica (JM / JAM)</option>
+        <option value="Japan">Japan (JP / JPN)</option>
+        <option value="Jersey">Jersey (JE / JEY)</option>
+        <option value="Jordan">Jordan (JO / JOR)</option>
+        <option value="Kazakhstan">Kazakhstan (KZ / KAZ)</option>
+        <option value="Kenya">Kenya (KE / KEN)</option>
+        <option value="Kiribati">Kiribati (KI / KIR)</option>
+        <option value="Kuwait">Kuwait (KW / KWT)</option>
+        <option value="Kyrgyzstan">Kyrgyzstan (KG / KGZ)</option>
+        <option value="Laos">Laos (LA / LAO)</option>
+        <option value="Latvia">Latvia (LV / LVA)</option>
+        <option value="Lebanon">Lebanon (LB / LBN)</option>
+        <option value="Lesotho">Lesotho (LS / LSO)</option>
+        <option value="Liberia">Liberia (LR / LBR)</option>
+        <option value="Libya">Libya (LY / LBY)</option>
+        <option value="Liechtenstein">Liechtenstein (LI / LIE)</option>
+        <option value="Lithuania">Lithuania (LT / LTU)</option>
+        <option value="Luxembourg">Luxembourg (LU / LUX)</option>
+        <option value="Macau">Macau (MO / MAC)</option>
+        <option value="Macedonia">Macedonia (MK / MKD)</option>
+        <option value="Madagascar">Madagascar (MG / MDG)</option>
+        <option value="Malawi">Malawi (MW / MWI)</option>
+        <option value="Malaysia">Malaysia (MY / MYS)</option>
+        <option value="Maldives">Maldives (MV / MDV)</option>
+        <option value="Mali">Mali (ML / MLI)</option>
+        <option value="Malta">Malta (MT / MLT)</option>
+        <option value="Marshall Islands">Marshall Islands (MH / MHL)</option>
+        <option value="Martinique">Martinique (MQ / MTQ)</option>
+        <option value="Mauritania">Mauritania (MR / MRT)</option>
+        <option value="Mauritius">Mauritius (MU / MUS)</option>
+        <option value="Mayotte">Mayotte (YT / MYT)</option>
+        <option value="Mexico">Mexico (MX / MEX)</option>
+        <option value="Micronesia">Micronesia (FM / FSM)</option>
+        <option value="Moldova">Moldova (MD / MDA)</option>
+        <option value="Monaco">Monaco (MC / MCO)</option>
+        <option value="Mongolia">Mongolia (MN / MNG)</option>
+        <option value="Montenegro">Montenegro (ME / MNE)</option>
+        <option value="Montserrat">Montserrat (MS / MSR)</option>
+        <option value="Morocco">Morocco (MA / MAR)</option>
+        <option value="Mozambique">Mozambique (MZ / MOZ)</option>
+        <option value="Namibia">Namibia (NA / NAM)</option>
+        <option value="Nauru">Nauru (NR / NRU)</option>
+        <option value="Nepal">Nepal (NP / NPL)</option>
+        <option value="Netherlands">Netherlands (NL / NLD)</option>
+        <option value="Netherlands Antilles">Netherlands Antilles (AN / ANT)</option>
+        <option value="New Caledonia">New Caledonia (NC / NCL)</option>
+        <option value="New Zealand">New Zealand (NZ / NZL)</option>
+        <option value="Nicaragua">Nicaragua (NI / NIC)</option>
+        <option value="Niger">Niger (NE / NER)</option>
+        <option value="Nigeria">Nigeria (NG / NGA)</option>
+        <option value="Niue">Niue (NU / NIU)</option>
+        <option value="Norfolk Island">Norfolk Island (NF / NFK)</option>
+        <option value="North Korea">North Korea (KP / PRK)</option>
+        <option value="Northern Mariana Islands">Northern Mariana Islands (MP / MNP)</option>
+        <option value="Norway">Norway (NO / NOR)</option>
+        <option value="Oman">Oman (OM / OMN)</option>
+        <option value="Pakistan">Pakistan (PK / PAK)</option>
+        <option value="Palau">Palau (PW / PLW)</option>
+        <option value="Palestine">Palestine (PS / PSE)</option>
+        <option value="Panama">Panama (PA / PAN)</option>
+        <option value="Papua New Guinea">Papua New Guinea (PG / PNG)</option>
+        <option value="Paraguay">Paraguay (PY / PRY)</option>
+        <option value="Peru">Peru (PE / PER)</option>
+        <option value="Philippines">Philippines (PH / PHL)</option>
+        <option value="Pitcairn Islands">Pitcairn Islands (PN / PCN)</option>
+        <option value="Poland">Poland (PL / POL)</option>
+        <option value="Portugal">Portugal (PT / PRT)</option>
+        <option value="Puerto Rico">Puerto Rico (PR / PRI)</option>
+        <option value="Qatar">Qatar (QA / QAT)</option>
+        <option value="Republic of the Congo">Republic of the Congo (CG / COG)</option>
+        <option value="Reunion Island">Reunion Island (RE / REU)</option>
+        <option value="Romania">Romania (RO / ROU)</option>
+        <option value="Russia">Russia (RU / RUS)</option>
+        <option value="Rwanda">Rwanda (RW / RWA)</option>
+        <option value="Saint Barthelemy">Saint Barthelemy (BL / BLM)</option>
+        <option value="Saint Helena">Saint Helena (SH / SHN)</option>
+        <option value="Saint Kitts and Nevis">Saint Kitts and Nevis (KN / KNA)</option>
+        <option value="Saint Lucia">Saint Lucia (LC / LCA)</option>
+        <option value="Saint Martin">Saint Martin (MF / MAF)</option>
+        <option value="Saint Pierre and Miquelon">Saint Pierre and Miquelon (PM / SPM)</option>
+        <option value="Saint Vincent and the Grenadines">Saint Vincent and the Grenadines (VC / VCT)</option>
+        <option value="Samoa">Samoa (WS / WSM)</option>
+        <option value="San Marino">San Marino (SM / SMR)</option>
+        <option value="Sao Tome and Principe">Sao Tome and Principe (ST / STP)</option>
+        <option value="Saudi Arabia">Saudi Arabia (SA / SAU)</option>
+        <option value="Senegal">Senegal (SN / SEN)</option>
+        <option value="Serbia">Serbia (RS / SRB)</option>
+        <option value="Seychelles">Seychelles (SC / SYC)</option>
+        <option value="Sierra Leone">Sierra Leone (SL / SLE)</option>
+        <option value="Singapore">Singapore (SG / SGP)</option>
+        <option value="Sint Maarten">Sint Maarten (SX / SXM)</option>
+        <option value="Slovakia">Slovakia (SK / SVK)</option>
+        <option value="Slovenia">Slovenia (SI / SVN)</option>
+        <option value="Solomon Islands">Solomon Islands (SB / SLB)</option>
+        <option value="Somalia">Somalia (SO / SOM)</option>
+        <option value="South Africa">South Africa (ZA / ZAF)</option>
+        <option value="South Korea">South Korea (KR / KOR)</option>
+        <option value="South Sudan">South Sudan (SS / SSD)</option>
+        <option value="Spain">Spain (ES / ESP)</option>
+        <option value="Sri Lanka">Sri Lanka (LK / LKA)</option>
+        <option value="Sudan">Sudan (SD / SDN)</option>
+        <option value="Suriname">Suriname (SR / SUR)</option>
+        <option value="Svalbard">Svalbard (SJ / SJM)</option>
+        <option value="Swaziland">Swaziland (SZ / SWZ)</option>
+        <option value="Sweden">Sweden (SE / SWE)</option>
+        <option value="Switzerland">Switzerland (CH / CHE)</option>
+        <option value="Syria">Syria (SY / SYR)</option>
+        <option value="Taiwan">Taiwan (TW / TWN)</option>
+        <option value="Tajikistan">Tajikistan (TJ / TJK)</option>
+        <option value="Tanzania">Tanzania (TZ / TZA)</option>
+        <option value="Thailand">Thailand (TH / THA)</option>
+        <option value="Timor-Leste">Timor-Leste (East Timor) (TL / TLS)</option>
+        <option value="Togo">Togo (TG / TGO)</option>
+        <option value="Tokelau">Tokelau (TK / TKL)</option>
+        <option value="Tonga Islands">Tonga Islands (TO / TON)</option>
+        <option value="Trinidad and Tobago">Trinidad and Tobago (TT / TTO)</option>
+        <option value="Tunisia">Tunisia (TN / TUN)</option>
+        <option value="Turkey">Turkey (TR / TUR)</option>
+        <option value="Turkmenistan">Turkmenistan (TM / TKM)</option>
+        <option value="Turks and Caicos Islands">Turks and Caicos Islands (TC / TCA)</option>
+        <option value="Tuvalu">Tuvalu (TV / TUV)</option>
+        <option value="Uganda">Uganda (UG / UGA)</option>
+        <option value="Ukraine">Ukraine (UA / UKR)</option>
+        <option value="United Arab Emirates">United Arab Emirates (AE / ARE)</option>
+        <option value="United Kingdom">United Kingdom (GB / GBR)</option>
+        <option value="United States">United States (US / USA)</option>
+        <option value="Uruguay">Uruguay (UY / URY)</option>
+        <option value="Uzbekistan">Uzbekistan (UZ / UZB)</option>
+        <option value="Vanuatu">Vanuatu (VU / VUT)</option>
+        <option value="Venezuela">Venezuela (VE / VEN)</option>
+        <option value="Vietnam">Vietnam (VN / VNM)</option>
+        <option value="Wallis and Futuna">Wallis and Futuna (WF / WLF)</option>
+        <option value="Western Sahara">Western Sahara (EH / ESH)</option>
+        <option value="Yemen">Yemen (YE / YEM)</option>
+        <option value="Zambia">Zambia (ZM / ZMB)</option>
+        <option value="Zimbabwe">Zimbabwe (ZW / ZWE)</option>
+        </select>
+    </div>
     <div class="form-group">
         <label for="Password"></label>
         <p style="color: gold">Password:</p>
@@ -367,7 +864,7 @@
         <p style="color: gold">Already registered? <a href="login.php"> Login Here</a></p>
     </div>
     <div class="form-btn">
-    <a href="Login.php" class="hero-btn">Back</a> <input type="Submit" class="hero-btn" value="Next" name="Submit">
+    <a href="Home.php" class="hero-btn">Back</a> <input type="Submit" class="hero-btn" value="Submit" name="Submit">
     </div>
 </form>
   <script>
